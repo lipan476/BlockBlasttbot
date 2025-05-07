@@ -76,47 +76,71 @@ app.post('/webhook', async (req, res) => {
 // ✅ 玩家通关后上传分数
 app.post('/submit-score', async (req, res) => {
     try {
+        console.log('收到请求体:', req.body);
+        
         const { user_id, score, inline_message_id, chat_id, message_id } = req.body;
         
+        // 参数验证
         if (!user_id || typeof score !== 'number') {
-            return res.status(400).json({ error: "Invalid parameters" });
+            return res.status(400).json({ 
+                error: "需要 user_id 和 score 参数",
+                received: req.body 
+            });
         }
 
+        // 构建Telegram API请求体
         const payload = {
             user_id: Number(user_id),
             score: Math.floor(score),
             force: true
         };
 
-        // 优先使用 inline_message_id
         if (inline_message_id) {
             payload.inline_message_id = inline_message_id;
-        } 
-        // 其次使用 chat_id + message_id
-        else if (chat_id && message_id) {
+        } else if (chat_id && message_id) {
             payload.chat_id = chat_id;
             payload.message_id = message_id;
         } else {
             return res.status(400).json({ 
-                error: "Need either inline_message_id or (chat_id + message_id)" 
+                error: "需要以下任一组合：",
+                required_options: [
+                    "inline_message_id",
+                    "chat_id + message_id"
+                ],
+                received: req.body
             });
         }
 
+        // 调用Telegram API
         const response = await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`,
             payload,
-            { timeout: 5000 }
+            { 
+                timeout: 5000,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
         );
 
-        res.json(response.data);
+        res.json({
+            success: true,
+            telegram_response: response.data
+        });
+        
     } catch (error) {
-        console.error('Score submission failed:', {
+        console.error('服务器错误:', {
             error: error.response?.data || error.message,
+            stack: error.stack,
             request: req.body
         });
-        res.status(500).json({ 
-            error: "Failed to upload score",
-            details: error.response?.data 
+        
+        res.status(500).json({
+            error: "服务器处理分数时出错",
+            details: {
+                telegram_error: error.response?.data,
+                internal_error: error.message
+            }
         });
     }
 });
