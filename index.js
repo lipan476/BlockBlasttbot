@@ -1,10 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors'); // 新增
+const cors = require('cors');
+
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(cors({
+  origin: 'https://lipan476.github.io'
+}));
 
 // ✅ 读取环境变量
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -19,109 +25,7 @@ if (!BOT_TOKEN) {
     process.exit(1);
 }
 
-
-// 允许来自指定域的请求（替换为你的前端域名）
-const allowedOrigins = [
-    'https://lipan476.github.io',
-    'https://block-blasttbot.vercel.app' // 你的 Telegram Web App 域名
-];
-
-
 app.use(express.json());
-
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     // 允许没有 origin 的请求（如 Telegram Web App 或本地测试）
-//     if (!origin || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-//   credentials: true,
-//   preflightContinue: false,
-//   optionsSuccessStatus: 204
-// }));
-
-// // 显式处理 OPTIONS 请求
-// app.options('*', cors());
-
-
-//
-
-//
-
-
-app.use(cors({
-  origin: 'https://lipan476.github.io',
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true
-}));
-
-// 显式处理 OPTIONS 请求
-app.options('*', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://lipan476.github.io');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.status(204).end();
-});
-
-
-
-app.post('/submit-score', async (req, res) => {
-  // 设置 CORS 头
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  
-  const { user_id, score, inline_message_id } = req.body;
-
-  if (!user_id || !score || !inline_message_id) {
-    console.error("❌ 参数不完整");
-    return res.status(400).json({ error: "Missing parameters" });
-  }
-
-  try {
-    const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`, {
-      user_id,
-      score,
-      inline_message_id
-    });
-    console.log("✅ 成功上传分数:", response.data);
-    res.json(response.data);
-  } catch (error) {
-    console.error("❌ 上传分数失败:", error.response ? error.response.data : error.message);
-    res.status(500).json({ error: "Failed to upload score" });
-  }
-});
-
-// ✅ 玩家查看排行榜
-app.post('/get-leaderboard', async (req, res) => {
-    const { user_id, inline_message_id } = req.body;
-
-    if (!user_id || !inline_message_id) {
-        console.error("❌ 参数不完整");
-        return res.status(400).json({ error: "Missing parameters" });
-    }
-
-    try {
-        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/getGameHighScores`, {
-            user_id,
-            inline_message_id
-        });
-        console.log("✅ 获取排行榜数据:", response.data);
-        res.json(response.data);
-    } catch (error) {
-        console.error("❌ 获取排行榜失败:", error.response ? error.response.data : error.message);
-        res.status(500).json({ error: "Failed to get highscores" });
-    }
-});
-
-
-
 
 // ✅ 处理 Telegram Webhook
 app.post('/webhook', async (req, res) => {
@@ -146,7 +50,7 @@ app.post('/webhook', async (req, res) => {
         try {
             const response = await axios.post(url, {
                 chat_id: chatId,
-                text: '🎮 Welcome to Block Blast Game! Click the button below to play:',
+                text: '🎮 Welcome to Sudoku Game! Click the button below to play:',
                 reply_markup: {
                     inline_keyboard: [
                         [{
@@ -167,6 +71,54 @@ app.post('/webhook', async (req, res) => {
         res.sendStatus(200);
     }
 });
+
+
+// ✅ 玩家通关后上传分数
+app.post('/upload-score', async (req, res) => {
+    const { user_id, score, inline_message_id } = req.body;
+
+    if (!user_id || !score || !inline_message_id) {
+        console.error("❌ 参数不完整");
+        return res.status(400).json({ error: "Missing parameters" });
+    }
+
+    try {
+        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`, {
+            user_id,
+            score,
+            inline_message_id
+        });
+        console.log("✅ 成功上传分数:", response.data);
+        res.json(response.data);
+    } catch (error) {
+        console.error("❌ 上传分数失败:", error.response ? error.response.data : error.message);
+        res.status(500).json({ error: "Failed to upload score" });
+    }
+});
+
+
+// ✅ 玩家查看排行榜
+app.post('/get-highscores', async (req, res) => {
+    const { user_id, inline_message_id } = req.body;
+
+    if (!user_id || !inline_message_id) {
+        console.error("❌ 参数不完整");
+        return res.status(400).json({ error: "Missing parameters" });
+    }
+
+    try {
+        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/getGameHighScores`, {
+            user_id,
+            inline_message_id
+        });
+        console.log("✅ 获取排行榜数据:", response.data);
+        res.json(response.data);
+    } catch (error) {
+        console.error("❌ 获取排行榜失败:", error.response ? error.response.data : error.message);
+        res.status(500).json({ error: "Failed to get highscores" });
+    }
+});
+
 
 // ✅ 监听 `/`，避免 Vercel 404 错误
 app.get('/', (req, res) => {
