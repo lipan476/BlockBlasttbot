@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors'); // 新增
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,34 +19,30 @@ if (!BOT_TOKEN) {
     process.exit(1);
 }
 
+
+// 允许来自指定域的请求（替换为你的前端域名）
+const allowedOrigins = [
+    'https://lipan476.github.io',
+    'https://block-blasttbot.vercel.app' // 你的 Telegram Web App 域名
+];
+
+
 app.use(express.json());
 
+app.use(cors({
+    origin: function (origin, callback) {
+        // 允许没有 origin 的请求（如 Telegram Web App 的本地加载）
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'OPTIONS'], // 允许的 HTTP 方法
+    credentials: true // 如果需要传递 Cookie 或 Auth Headers
+}));
 
 
-// ✅ 提交分数（通过 Web App 或 Bot 命令）
-// app.post('/submit-score', async (req, res) => {
-//     const { user_id, score, chat_id } = req.body;
-
-//     if (!user_id || !score) {
-//         return res.status(400).json({ error: "Missing user_id or score" });
-//     }
-
-//     try {
-//         const response = await axios.post(
-//             `https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`,
-//             {
-//                 user_id,
-//                 score,
-//                 chat_id: chat_id || user_id, // 默认私聊
-//                 force: true // 允许分数覆盖
-//             }
-//         );
-//         res.json({ success: true, data: response.data });
-//     } catch (error) {
-//         console.error("❌ setGameScore error:", error.response?.data);
-//         res.status(500).json({ error: "Failed to submit score" });
-//     }
-// });
 
 // ✅ 玩家通关后上传分数
 app.post('/submit-score', async (req, res) => {
@@ -92,29 +89,6 @@ app.post('/get-leaderboard', async (req, res) => {
     }
 });
 
-// ✅ 获取排行榜（按 chat_id 分组）
-// app.post('/get-leaderboard', async (req, res) => {
-//     const { user_id, chat_id } = req.body;
-
-//     if (!user_id) {
-//         return res.status(400).json({ error: "Missing user_id" });
-//     }
-
-//     try {
-//         const response = await axios.post(
-//             `https://api.telegram.org/bot${BOT_TOKEN}/getGameHighScores`,
-//             {
-//                 user_id,
-//                 chat_id: chat_id || user_id // 默认私聊
-//             }
-//         );
-//         const scores = response.data.result;
-//         res.json({ success: true, scores });
-//     } catch (error) {
-//         console.error("❌ getGameHighScores error:", error.response?.data);
-//         res.status(500).json({ error: "Failed to fetch leaderboard" });
-//     }
-// });
 
 
 
