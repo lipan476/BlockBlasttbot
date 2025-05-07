@@ -75,25 +75,49 @@ app.post('/webhook', async (req, res) => {
 
 // ✅ 玩家通关后上传分数
 app.post('/submit-score', async (req, res) => {
-    const { user_id, score, chat_id } = req.body;
-
-    if (!user_id || !score || !chat_id) {
-        console.error("❌ 参数不完整");
-        return res.status(400).json({ error: "Missing parameters" });
-    }
-
     try {
-        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`, {
-            user_id,
-            score,
-            chat_id: chat_id || user_id, // 默认私聊
-            force: true // 允许分数覆盖
-        });
-        console.log("✅ 成功上传分数:", response.data);
+        const { user_id, score, inline_message_id, chat_id, message_id } = req.body;
+        
+        if (!user_id || typeof score !== 'number') {
+            return res.status(400).json({ error: "Invalid parameters" });
+        }
+
+        const payload = {
+            user_id: Number(user_id),
+            score: Math.floor(score),
+            force: true
+        };
+
+        // 优先使用 inline_message_id
+        if (inline_message_id) {
+            payload.inline_message_id = inline_message_id;
+        } 
+        // 其次使用 chat_id + message_id
+        else if (chat_id && message_id) {
+            payload.chat_id = chat_id;
+            payload.message_id = message_id;
+        } else {
+            return res.status(400).json({ 
+                error: "Need either inline_message_id or (chat_id + message_id)" 
+            });
+        }
+
+        const response = await axios.post(
+            `https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`,
+            payload,
+            { timeout: 5000 }
+        );
+
         res.json(response.data);
     } catch (error) {
-        console.error("❌ 上传分数失败:", error.response ? error.response.data : error.message);
-        res.status(500).json({ error: "Failed to upload score" });
+        console.error('Score submission failed:', {
+            error: error.response?.data || error.message,
+            request: req.body
+        });
+        res.status(500).json({ 
+            error: "Failed to upload score",
+            details: error.response?.data 
+        });
     }
 });
 
