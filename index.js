@@ -29,42 +29,70 @@ const allowedOrigins = [
 
 app.use(express.json());
 
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     // 允许没有 origin 的请求（如 Telegram Web App 或本地测试）
+//     if (!origin || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true,
+//   preflightContinue: false,
+//   optionsSuccessStatus: 204
+// }));
+
+// // 显式处理 OPTIONS 请求
+// app.options('*', cors());
+
+
+
+
 app.use(cors({
-    origin: function (origin, callback) {
-        // 允许没有 origin 的请求（如 Telegram Web App 的本地加载）
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'OPTIONS'], // 允许的 HTTP 方法
-    credentials: true // 如果需要传递 Cookie 或 Auth Headers
+  origin: 'https://lipan476.github.io',
+  methods: ['POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true
 }));
 
+// 显式处理 OPTIONS 请求
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://lipan476.github.io');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(204).end();
+});
 
 
-// ✅ 玩家通关后上传分数
+
 app.post('/submit-score', async (req, res) => {
-    const { user_id, score, inline_message_id } = req.body;
+  // 设置 CORS 头
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  
+  const { user_id, score, inline_message_id } = req.body;
 
-    if (!user_id || !score || !inline_message_id) {
-        console.error("❌ 参数不完整");
-        return res.status(400).json({ error: "Missing parameters" });
-    }
+  if (!user_id || !score || !inline_message_id) {
+    console.error("❌ 参数不完整");
+    return res.status(400).json({ error: "Missing parameters" });
+  }
 
-    try {
-        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`, {
-            user_id,
-            score,
-            inline_message_id
-        });
-        console.log("✅ 成功上传分数:", response.data);
-        res.json(response.data);
-    } catch (error) {
-        console.error("❌ 上传分数失败:", error.response ? error.response.data : error.message);
-        res.status(500).json({ error: "Failed to upload score" });
-    }
+  try {
+    const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`, {
+      user_id,
+      score,
+      inline_message_id
+    });
+    console.log("✅ 成功上传分数:", response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error("❌ 上传分数失败:", error.response ? error.response.data : error.message);
+    res.status(500).json({ error: "Failed to upload score" });
+  }
 });
 
 // ✅ 玩家查看排行榜

@@ -1,25 +1,52 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "index.js",
-        "use": "@vercel/node"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "index.js"
-      }
-    ],
-    "headers": [
-        {
-            "source": "/(.*)",
-            "headers": [
-                { "key": "Access-Control-Allow-Origin", "value": "*" },
-                { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" }
-            ]
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "index.js",
+      "methods": ["GET", "POST", "OPTIONS"]  // 明确指定允许的方法
+    }
+  ],
+  "headers": [
+    {
+      "source": "/submit-score",
+      "headers": [
+        { 
+          "key": "Access-Control-Allow-Origin", 
+          "value": "https://lipan476.github.io"  // 明确指定允许的源
+        },
+        { 
+          "key": "Access-Control-Allow-Methods", 
+          "value": "POST, OPTIONS"  // 只允许必要的方法
+        },
+        { 
+          "key": "Access-Control-Allow-Headers", 
+          "value": "Content-Type, Authorization"  // 明确允许的头部
+        },
+        { 
+          "key": "Access-Control-Allow-Credentials", 
+          "value": "true"  // 如果需要凭证
         }
-    ]
-  }
-  
+      ]
+    },
+    {
+      "source": "/get-leaderboard",
+      "headers": [
+        { 
+          "key": "Access-Control-Allow-Origin", 
+          "value": "https://lipan476.github.io"
+        },
+        { 
+          "key": "Access-Control-Allow-Methods", 
+          "value": "POST, OPTIONS"
+        }
+      ]
+    }
+  ]
+}
