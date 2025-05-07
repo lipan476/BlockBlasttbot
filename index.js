@@ -20,6 +20,59 @@ if (!BOT_TOKEN) {
 
 app.use(express.json());
 
+
+
+// ✅ 提交分数（通过 Web App 或 Bot 命令）
+app.post('/submit-score', async (req, res) => {
+    const { user_id, score, chat_id } = req.body;
+
+    if (!user_id || !score) {
+        return res.status(400).json({ error: "Missing user_id or score" });
+    }
+
+    try {
+        const response = await axios.post(
+            `https://api.telegram.org/bot${BOT_TOKEN}/setGameScore`,
+            {
+                user_id,
+                score,
+                chat_id: chat_id || user_id, // 默认私聊
+                force: true // 允许分数覆盖
+            }
+        );
+        res.json({ success: true, data: response.data });
+    } catch (error) {
+        console.error("❌ setGameScore error:", error.response?.data);
+        res.status(500).json({ error: "Failed to submit score" });
+    }
+});
+
+// ✅ 获取排行榜（按 chat_id 分组）
+app.post('/get-leaderboard', async (req, res) => {
+    const { user_id, chat_id } = req.body;
+
+    if (!user_id) {
+        return res.status(400).json({ error: "Missing user_id" });
+    }
+
+    try {
+        const response = await axios.post(
+            `https://api.telegram.org/bot${BOT_TOKEN}/getGameHighScores`,
+            {
+                user_id,
+                chat_id: chat_id || user_id // 默认私聊
+            }
+        );
+        const scores = response.data.result;
+        res.json({ success: true, scores });
+    } catch (error) {
+        console.error("❌ getGameHighScores error:", error.response?.data);
+        res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+});
+
+
+
 // ✅ 处理 Telegram Webhook
 app.post('/webhook', async (req, res) => {
     console.log("📩 收到 Telegram 消息:", JSON.stringify(req.body, null, 2));
